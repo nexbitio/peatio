@@ -19,16 +19,13 @@ class Withdraw < ApplicationRecord
   include AASM::Locking
   include BelongsToCurrency
   include BelongsToMember
+  include BelongsToAccount
   include TIDIdentifiable
   include FeeChargeable
 
-  # Optional beneficiary association gives ability to support both in-peatio
-  # beneficiaries and managed by third party application.
-  belongs_to :beneficiary, optional: true
-
   acts_as_eventable prefix: 'withdraw', on: %i[create update]
 
-  before_validation(on: :create) { self.rid ||= beneficiary.rid if beneficiary.present? }
+  before_validation(on: :create) { self.account ||= member&.ac(currency) }
   before_validation { self.completed_at ||= Time.current if completed? }
 
   validates :rid, :aasm_state, presence: true
@@ -38,10 +35,6 @@ class Withdraw < ApplicationRecord
             presence: true,
             numericality: { greater_than_or_equal_to: ->(withdraw) { withdraw.currency.min_withdraw_amount }}
 
-  validate do
-    errors.add(:beneficiary, 'not active') if beneficiary.present? && !beneficiary.active? && !aasm_state.to_sym.in?(COMPLETED_STATES)
-  end
-
   scope :completed, -> { where(aasm_state: COMPLETED_STATES) }
 
   aasm whiny_transitions: false do
@@ -50,7 +43,6 @@ class Withdraw < ApplicationRecord
     state :canceled
     state :accepted
     state :skipped
-    state :to_reject
     state :rejected
     state :processing
     state :succeed
@@ -81,7 +73,7 @@ class Withdraw < ApplicationRecord
     end
 
     event :reject do
-      transitions from: %i[submitted to_reject accepted confirming], to: :rejected
+      transitions from: %i[submitted accepted confirming], to: :rejected
       after do
         unlock_funds
         record_cancel_operations!
@@ -136,12 +128,8 @@ class Withdraw < ApplicationRecord
     end
 
     event :err do
-      transitions from: :processing, to: :errored, after: :add_error
+      transitions from: :processing, to: :errored, on_transition: :add_error
     end
-  end
-
-  def account
-    member&.get_account(currency)
   end
 
   def add_error(e)
@@ -279,37 +267,38 @@ private
   end
 
   def send_coins!
-    AMQP::Queue.enqueue(:withdraw_coin, id: id) if coin?
+    AMQPQueue.enqueue(:withdraw_coin, id: id) if coin?
   end
 end
 
 # == Schema Information
-# Schema version: 20200211124707
+# Schema version: 20190725131843
 #
 # Table name: withdraws
 #
-#  id             :integer          not null, primary key
-#  member_id      :integer          not null
-#  beneficiary_id :bigint
-#  currency_id    :string(10)       not null
-#  amount         :decimal(32, 16)  not null
-#  fee            :decimal(32, 16)  not null
-#  txid           :string(128)
-#  aasm_state     :string(30)       not null
-#  block_number   :integer
-#  sum            :decimal(32, 16)  not null
-#  type           :string(30)       not null
-#  tid            :string(64)       not null
-#  rid            :string(95)       not null
-#  note           :string(256)
-#  error          :json
-#  created_at     :datetime         not null
-#  updated_at     :datetime         not null
-#  completed_at   :datetime
+#  id           :integer          not null, primary key
+#  account_id   :integer          not null
+#  member_id    :integer          not null
+#  currency_id  :string(10)       not null
+#  amount       :decimal(32, 16)  not null
+#  fee          :decimal(32, 16)  not null
+#  txid         :string(128)
+#  aasm_state   :string(30)       not null
+#  block_number :integer
+#  sum          :decimal(32, 16)  not null
+#  type         :string(30)       not null
+#  tid          :string(64)       not null
+#  rid          :string(95)       not null
+#  note         :string(256)
+#  error        :json
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  completed_at :datetime
 #
 # Indexes
 #
 #  index_withdraws_on_aasm_state            (aasm_state)
+#  index_withdraws_on_account_id            (account_id)
 #  index_withdraws_on_currency_id           (currency_id)
 #  index_withdraws_on_currency_id_and_txid  (currency_id,txid) UNIQUE
 #  index_withdraws_on_member_id             (member_id)

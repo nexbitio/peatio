@@ -1,5 +1,6 @@
 # encoding: UTF-8
 # frozen_string_literal: true
+# Removing bullshit beneficiary from peatio 2.4
 
 module API
   module V2
@@ -9,11 +10,14 @@ module API
 
         desc 'Get all withdraws, result is paginated.',
           is_array: true,
-          success: API::V2::Admin::Entities::Withdraw
+          success: API::V2::Admin::Entities::Deposit
         params do
           optional :state,
-                   values: { value: ->(v) { [*v].all? { |value| value.in? Withdraw::STATES.map(&:to_s) } }, message: 'admin.withdraw.invalid_state' },
+                   values: { value: -> { Withdraw::STATES.map(&:to_s) }, message: 'admin.withdraw.invalid_state' },
                    desc: -> { API::V2::Admin::Entities::Withdraw.documentation[:state][:desc] }
+          optional :account,
+                   type: Integer,
+                   desc: -> { API::V2::Admin::Entities::Withdraw.documentation[:account][:desc] }
           optional :id,
                    type: Integer,
                    desc: -> { API::V2::Admin::Entities::Withdraw.documentation[:id][:desc] }
@@ -38,32 +42,15 @@ module API
 
           ransack_params = Helpers::RansackBuilder.new(params)
                              .eq(:id, :txid, :rid, :tid)
-                             .translate(uid: :member_uid, currency: :currency_id)
+                             .translate(state: :aasm_state, uid: :member_uid, account: :account_id, currency: :currency_id)
                              .with_daterange
                              .merge(type_eq: params[:type].present? ? "Withdraws::#{params[:type]}" : nil)
-                             .merge(aasm_state_in: params[:state])
                              .build
 
           search = Withdraw.ransack(ransack_params)
           search.sorts = "#{params[:order_by]} #{params[:ordering]}"
 
           present paginate(search.result), with: API::V2::Admin::Entities::Withdraw
-        end
-
-        desc 'Get withdraw by ID.',
-             success: API::V2::Admin::Entities::Withdraw
-        params do
-          requires :id,
-                   type: { value: Integer, message: 'admin.withdraw.non_integer_id' },
-                   desc: -> { API::V2::Admin::Entities::Withdraw.documentation[:id][:desc] }
-        end
-        get '/withdraws/:id' do
-          authorize! :read, Withdraw
-
-          withdraw = Withdraw.find_by!(id: params[:id])
-          present withdraw,
-                  with: API::V2::Admin::Entities::Withdraw,
-                  with_beneficiary: true
         end
 
         desc 'Take an action on the withdrawal.',
@@ -95,8 +82,8 @@ module API
 
           transited = withdraw.transaction do
             withdraw.update!(txid: declared_params[:txid]) if declared_params[:txid].present?
-            withdraw.public_send("#{declared_params[:action]}!").tap do |success|
-              raise ActiveRecord::Rollback unless success
+            unless withdraw.public_send("#{declared_params[:action]}!")
+              raise ActiveRecord::Rollback
             end
           rescue StandardError
             raise ActiveRecord::Rollback

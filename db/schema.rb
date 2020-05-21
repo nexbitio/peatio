@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_03_17_080916) do
+ActiveRecord::Schema.define(version: 2019_09_05_050444) do
 
   create_table "accounts", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.integer "member_id", null: false
@@ -97,16 +97,15 @@ ActiveRecord::Schema.define(version: 2020_03_17_080916) do
     t.decimal "withdraw_limit_72h", precision: 32, scale: 16, default: "0.0", null: false
     t.integer "position", default: 0, null: false
     t.string "options", limit: 1000, default: "{}"
-    t.boolean "visible", default: true, null: false
-    t.boolean "deposit_enabled", default: true, null: false
-    t.boolean "withdrawal_enabled", default: true, null: false
+    t.boolean "enabled", default: true, null: false
     t.bigint "base_factor", default: 1, null: false
     t.integer "precision", limit: 1, default: 8, null: false
     t.string "icon_url"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["enabled"], name: "index_currencies_on_enabled"
+    t.index ["enabled"], name: "index_currencies_on_enabled_and_code"
     t.index ["position"], name: "index_currencies_on_position"
-    t.index ["visible"], name: "index_currencies_on_visible"
   end
 
   create_table "deposits", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
@@ -170,7 +169,6 @@ ActiveRecord::Schema.define(version: 2020_03_17_080916) do
     t.decimal "max_price", precision: 32, scale: 16, default: "0.0", null: false
     t.decimal "min_amount", precision: 32, scale: 16, default: "0.0", null: false
     t.integer "position", default: 0, null: false
-    t.string "data_encrypted", limit: 1024
     t.string "state", limit: 32, default: "enabled", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -209,7 +207,6 @@ ActiveRecord::Schema.define(version: 2020_03_17_080916) do
   end
 
   create_table "orders", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
-    t.binary "uuid", limit: 16, null: false
     t.string "bid", limit: 10, null: false
     t.string "ask", limit: 10, null: false
     t.string "market_id", limit: 20, null: false
@@ -271,7 +268,6 @@ ActiveRecord::Schema.define(version: 2020_03_17_080916) do
     t.string "market_id", limit: 20, null: false
     t.integer "maker_id", null: false
     t.integer "taker_id", null: false
-    t.string "taker_type", limit: 20, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["created_at"], name: "index_trades_on_created_at"
@@ -284,8 +280,8 @@ ActiveRecord::Schema.define(version: 2020_03_17_080916) do
   create_table "trading_fees", options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
     t.string "market_id", limit: 20, default: "any", null: false
     t.string "group", limit: 32, default: "any", null: false
-    t.decimal "maker", precision: 7, scale: 6, default: "0.0", null: false
-    t.decimal "taker", precision: 7, scale: 6, default: "0.0", null: false
+    t.decimal "maker", precision: 5, scale: 4, default: "0.0", null: false
+    t.decimal "taker", precision: 5, scale: 4, default: "0.0", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["group"], name: "index_trading_fees_on_group"
@@ -333,8 +329,8 @@ ActiveRecord::Schema.define(version: 2020_03_17_080916) do
   end
 
   create_table "withdraws", id: :integer, options: "ENGINE=InnoDB DEFAULT CHARSET=utf8", force: :cascade do |t|
+    t.integer "account_id", null: false
     t.integer "member_id", null: false
-    t.bigint "beneficiary_id"
     t.string "currency_id", limit: 10, null: false
     t.decimal "amount", precision: 32, scale: 16, null: false
     t.decimal "fee", precision: 32, scale: 16, null: false
@@ -351,6 +347,7 @@ ActiveRecord::Schema.define(version: 2020_03_17_080916) do
     t.datetime "updated_at", null: false
     t.datetime "completed_at"
     t.index ["aasm_state"], name: "index_withdraws_on_aasm_state"
+    t.index ["account_id"], name: "index_withdraws_on_account_id"
     t.index ["currency_id", "txid"], name: "index_withdraws_on_currency_id_and_txid", unique: true
     t.index ["currency_id"], name: "index_withdraws_on_currency_id"
     t.index ["member_id"], name: "index_withdraws_on_member_id"

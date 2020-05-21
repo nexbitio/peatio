@@ -1,6 +1,6 @@
 # encoding: UTF-8
 # frozen_string_literal: true
-
+# Removing bullshit beneficiary from peatio 2.4
 module API
   module V2
     module Management
@@ -82,42 +82,22 @@ module API
           success API::V2::Management::Entities::Withdraw
         end
         params do
-          requires :uid,            type: String, desc: 'The shared user ID.'
-          optional :tid,            type: String, desc: 'The shared transaction ID. Must not exceed 64 characters. Peatio will generate one automatically unless supplied.'
-          optional :rid,            type: String, desc: 'The beneficiary ID or wallet address on the Blockchain.'
-          optional :beneficiary_id, type: String, desc: 'ID of Active Beneficiary belonging to user.'
-          requires :currency,       type: String, values: -> { Currency.codes(bothcase: true) }, desc: 'The currency code.'
-          requires :amount,         type: BigDecimal, desc: 'The amount to withdraw.'
-          optional :note,           type: String, desc: 'The note for withdraw.'
-          optional :action,         type: String, values: %w[process], desc: 'The action to perform.'
-
-          exactly_one_of :rid, :beneficiary_id
+          requires :uid,      type: String, desc: 'The shared user ID.'
+          optional :tid,      type: String, desc: 'The shared transaction ID. Must not exceed 64 characters. Peatio will generate one automatically unless supplied.'
+          requires :rid,      type: String, desc: 'The beneficiary ID or wallet address on the Blockchain.'
+          requires :currency, type: String, values: -> { Currency.codes(bothcase: true) }, desc: 'The currency code.'
+          requires :amount,   type: BigDecimal, desc: 'The amount to withdraw.'
+          optional :action,   type: String, values: %w[process], desc: 'The action to perform.'
         end
         post '/withdraws/new' do
-          member = Member.find_by(uid: params[:uid])
-
           currency = Currency.find(params[:currency])
-          unless currency.withdrawal_enabled?
-            error!({ errors: ['management.currency.withdrawal_disabled'] }, 422)
-          end
-
-          beneficiary = Beneficiary.find_by(id: params[:beneficiary_id]) if params[:beneficiary_id].present?
-          if params[:rid].blank? && beneficiary.blank?
-            error!({ errors: ['management.beneficiary.doesnt_exist'] }, 422)
-          elsif params[:rid].blank? && !beneficiary&.active?
-            error!({ errors: ['management.beneficiary.invalid_state_for_withdrawal'] }, 422)
-          end
-
-          declared_params = declared(params, include_missing: false).slice(:tid, :rid, :note).merge(
-            sum: params[:amount],
-            member: member,
-            currency: currency,
-            tid: params[:tid]
-          )
-
-          declared_params.merge!(beneficiary: beneficiary) if params[:beneficiary_id].present?
-          withdraw = "withdraws/#{currency.type}".camelize.constantize.new(declared_params)
-
+          member   = Member.find_by(uid: params[:uid])
+          withdraw = "withdraws/#{currency.type}".camelize.constantize.new \
+            sum:            params[:amount],
+            member:         member,
+            currency:       currency,
+            tid:            params[:tid],
+            rid:            params[:rid]
           withdraw.save!
           withdraw.with_lock { withdraw.submit! }
           perform_action(withdraw, params[:action]) if params[:action]
