@@ -60,7 +60,7 @@ module API
           :rid,
           documentation: {
             type: String,
-            desc: 'The beneficiary ID or wallet address on the Blockchain.'
+            desc: 'The member ID or wallet address on the Blockchain.'
           }
         )
 

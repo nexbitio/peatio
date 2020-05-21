@@ -1,6 +1,6 @@
 # encoding: UTF-8
 # frozen_string_literal: true
-
+# Removing bullshit beneficiary from peatio 2.4
 module API
   module V2
     module Admin
@@ -13,14 +13,6 @@ module API
               type: String,
               desc: 'The member id.'
             }
-          )
-
-          expose(
-            :beneficiary,
-            using: API::V2::Entities::Beneficiary,
-            if: ->(withdraw, options) do
-              options[:with_beneficiary] && withdraw.beneficiary.present?
-            end
           )
 
           expose(
@@ -40,12 +32,13 @@ module API
           ) { |w| w.member.email }
 
           expose(
-            :account,
+            :account_id,
+            as: :account,
             documentation: {
               type: String,
               desc: 'The account code.'
             }
-          ) { |w| w.account.id }
+          )
 
           expose(
             :block_number,

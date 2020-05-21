@@ -11,13 +11,6 @@ def catch_and_report_exception(options = {})
   end
 end
 
-# report_api_error sample output.
-# With default Rails formatter:
-# I, [2019-09-18T12:52:59.077389 #157366]  INFO -- : {:message=>"Account balance is insufficient", :path=>"/api/v2/account/withdraws", :params=>{"uid"=>"ID20DA7496BB", "currency"=>"usd", "amount"=>0.1e3, "beneficiary_id"=>1, "otp"=>123456}}
-#
-# With JSONLogFormatter:
-# {"message":"Account balance is insufficient","path":"/api/v2/account/withdraws","params":{"uid":"ID5DE7A981C4","currency":"usd","amount":"100.0","beneficiary_id":1,"otp":123456},"level":"INFO","time":"2019-09-18 12:54:36"}
-
 def report_api_error(exception, request)
   Rails.logger.info message: exception.message, path: request.path, params: request.params
 end
