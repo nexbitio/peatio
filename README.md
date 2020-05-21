@@ -103,66 +103,11 @@ Otherwise we advice to use [microkube based environment](#local-development-envi
 (`base64 -b0` for macOS)
 
 
-### Local development environment with microkube:
 
-We suggest you to start using Peatio by installing [Microkube](https://github.com/rubykube/microkube).
-[Microkube](https://github.com/rubykube/microkube) which is based on
-[Docker containers](https://www.docker.com/what-docker) is a convenient and straightforward way to start
-Peatio development environment.
 
 #### Prerequisites
 * [Docker](https://docs.docker.com/install/) installed
 * [Docker compose](https://docs.docker.com/compose/install/) installed
-
-#### Prepare the microkube
-
-Follow microkube [README](https://github.com/rubykube/microkube) for the best Peatio installation experience.
-
-### Local development environment with workbench (DEPRECATED since 2.0):
-
-[Workbench](https://github.com/rubykube/workbench) is legacy way for running Peatio locally.
-Probably Workbench support will be removed soon. We advice to use [Microkube](https://github.com/rubykube/microkube)
-which is more lightweight environment.
-
-#### [Barong](https://github.com/rubykube/barong)
-
-Barong is an essential part of Rubykube Peatio. It is a KYC OAuth 2.0 provider. Barong replace the KYC, 2FA, Phone verification from legacy Peatio.
-Barong manage roles and kyc level across all applications from the RKCP. It's easy to extend by using the EventAPI or Rest API.
-
-##### Barong key features
-
-* KYC Verification for individuals
-* SMS and Google two-factor authentication
-* OAuth 2.0 provider
-* Transaction Signature support
-* Supply JWT tokens to frontend and mobile app
-
-
-Start barong:
-
-```sh
-$> docker-compose run --rm barong bash -c "./bin/link_config && ./bin/setup"
-$> docker-compose up -d barong
-```
-
-This will output password for **admin@barong.io**. Default password is **`Qwerty123`**
-
-#### Peatio
-
-Start peatio server
-
-```sh
-$> docker-compose run --rm peatio bash -c "bundle exec rake db:create db:migrate db:seed"
-$> docker-compose up -d peatio
-```
-
-After all of that you can start using Peatio in your browser just by following one of the hosts which you added earlier.
-
-
-### Production setup:
-
-* [Deploy production cluster with kite](https://github.com/rubykube/kite/blob/master/README.md)
-* [Kubernetes deployment architecture](docs/architecture.md)
 
 ## API
 
@@ -175,20 +120,6 @@ You can interact with Peatio through API:
 
 ## Getting Involved
 We want to make it super-easy for Peatio users and contributors to talk to us and connect with each other, to share ideas, solve problems and help make Peatio awesome. Here are the main channels we're running currently, we'd love to hear from you on one of them:
-
-### Discourse
-
-[Rubykube Discourse Forum](https://discuss.rubykube.io)
-
-This is for all Peatio users. You can find guides, recipes, questions, and answers from Snowplow users including the Peatio.tech team.
-We welcome questions and contributions!
-
-### Telegram
-
-[@peatio](https://t.me/peatio)
-
-Chat with us and other community members on Telegram.
-
 ### GitHub
 Peatio issues
 
